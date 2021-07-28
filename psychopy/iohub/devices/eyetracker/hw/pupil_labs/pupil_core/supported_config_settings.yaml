@@ -41,8 +41,6 @@ eyetracker.hw.pupil_labs.pupil_core.EyeTracker:
             min_length: 1
             max_length: 8
 
-    manufacture_date: IOHUB_DATE
-
     #####
 
     enable: IOHUB_BOOL

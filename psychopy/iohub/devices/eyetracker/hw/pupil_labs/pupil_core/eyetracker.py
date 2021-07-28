@@ -3,6 +3,7 @@
 # Copyright (C) 2012-2020 iSolver Software Solutions (C) 2021 Open Science Tools Ltd.
 # Distributed under the terms of the GNU General Public License (GPL).
 
+import logging
 import math
 from psychopy.iohub.constants import EventConstants, EyeTrackerConstants
 from psychopy.iohub.devices import Computer, Device
@@ -11,6 +12,9 @@ from psychopy.iohub.devices.eyetracker.eye_events import *
 from psychopy.iohub.errors import print2err, printExceptionDetailsToStdErr
 
 from .pupil_remote import PupilRemote, PupilRemoteDelegate
+
+
+logger = logging.getLogger(__name__)
 
 
 class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
@@ -46,11 +50,6 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
 
     """
 
-    # PupilRemoteDelegate Interface
-
-    def handle_event(self, topic: str, payload):
-        print(f"{topic}: {payload}")
-
     # EyeTrackerDevice Interface
 
     # #: The multiplier needed to convert a device's native time base to sec.msec-usec times.
@@ -65,9 +64,10 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
 
     def __init__(self, *args, **kwargs):
         EyeTrackerDevice.__init__(self, *args, **kwargs)
-        ip_address = self._runtime_settings["pupil_remote"]["ip_address"]
-        port = self._runtime_settings["pupil_remote"]["port"]
-        self._pupil_remote = PupilRemote(ip_address=ip_address, port=port)
+        self._pupil_remote_ip_address = self._runtime_settings["pupil_remote"]["ip_address"]
+        self._pupil_remote_port = self._runtime_settings["pupil_remote"]["port"]
+        self._pupil_remote = None
+        self.setConnectionState(True)
 
     def trackerTime(self):
         """trackerTime returns the current time reported by the eye tracker
@@ -119,7 +119,12 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
             bool: indicates the current connection state to the eye tracking hardware.
 
         """
-        return EyeTrackerConstants.FUNCTIONALITY_NOT_SUPPORTED
+        if enable and self._pupil_remote is None:
+            self._pupil_remote = PupilRemote(
+                ip_address=self._pupil_remote_ip_address, port=self._pupil_remote_port)
+        elif not enable and self._pupil_remote is not None:
+            self._pupil_remote.cleanup()
+            self._pupil_remote = None
 
     def isConnected(self):
         """isConnected returns whether the ioHub EyeTracker Device is connected
@@ -134,78 +139,7 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
             bool:  True = the eye tracking hardware is connected. False otherwise.
 
         """
-        return EyeTrackerConstants.FUNCTIONALITY_NOT_SUPPORTED
-
-    def sendCommand(self, key, value=None):
-        """
-        The sendCommand method allows arbitrary *commands* or *requests* to be
-        issued to the eye tracker device. Valid values for the arguments of this
-        method are completely implementation-specific, so please refer to the
-        eye tracker implementation page for the eye tracker being used for a list of
-        valid key and value combinations (if any).
-
-        In general, eye tracker implementations should **not** need to support
-        this method unless there is critical eye tracker functionality that is
-        not accessible using the other methods in the EyeTrackerDevice class.
-
-        Args:
-            key (str): the command or function name that should be run.
-            value (object): the (optional) value associated with the key.
-
-        Return:
-            object: the result of the command call
-            int: EyeTrackerConstants.EYETRACKER_OK
-            int: EyeTrackerConstants.EYETRACKER_ERROR
-            int: EyeTrackerConstants.EYETRACKER_INTERFACE_METHOD_NOT_SUPPORTED
-        """
-        return EyeTrackerConstants.FUNCTIONALITY_NOT_SUPPORTED
-
-    def sendMessage(self, message_contents, time_offset=None):
-        """The sendMessage method sends a text message to the eye tracker.
-
-        Messages are generally used to send information you want
-        saved with the native eye data file and are often used to
-        synchronize stimulus changes in the experiment with the eye
-        data stream being saved to the native eye tracker data file (if any).
-
-        This means that the sendMessage implementation needs to
-        perform in real-time, with a delay of <1 msec from when a message is
-        sent to when it is time stamped by the eye tracker, for it to be
-        accurate in this regard.
-
-        If this standard can not be met, the expected delay and message
-        timing precision (variability) should be provided in the eye tracker's
-        implementation notes.
-
-        .. note::
-            If using the ioDataStore to save the eye tracker data, the use of
-            this method is quite optional, as Experiment Device Message Events
-            will likely be preferred. ioHub Message Events are stored in the ioDataStore,
-            alongside all other device data collected via the ioHub, and not
-            in the native eye tracker data.
-
-        Args:
-           message_contents (str):
-               If message_contents is a string, check with the implementations documentation if there are any string length limits.
-
-        Kwargs:
-           time_offset (float): sec.msec_usec time offset that the time stamp of
-                              the message should be offset in the eye tracker data file.
-                              time_offset can be used so that a message can be sent
-                              for a display change **BEFORE** or **AFTER** the actual
-                              flip occurred, using the following formula:
-
-                              time_offset = sendMessage_call_time - event_time_message_represent
-
-                              Both times should be based on the iohub.devices.Computer.getTime() time base.
-
-                              If time_offset is not supported by the eye tracker implementation being used, a warning message will be printed to stdout.
-
-        Return:
-            (int): EyeTrackerConstants.EYETRACKER_OK, EyeTrackerConstants.EYETRACKER_ERROR, or EyeTrackerConstants.EYETRACKER_INTERFACE_METHOD_NOT_SUPPORTED
-
-        """
-        return EyeTrackerConstants.FUNCTIONALITY_NOT_SUPPORTED
+        return self._pupil_remote is not None
 
     def runSetupProcedure(self, calibration_args={}):
         """
@@ -238,11 +172,13 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
             bool: the current recording state of the eye tracking device
 
         """
+        if not self.isConnected():
+            return False
         if recording:
             self._pupil_remote.start_recording()
         else:
             self._pupil_remote.stop_recording()
-        return recording
+        return self.isRecordingEnabled()
 
     def isRecordingEnabled(self):
         """The isRecordingEnabled method indicates if the eye tracker device is
@@ -255,6 +191,8 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
             bool: True == the device is recording data; False == Recording is not occurring
 
         """
+        if not self.isConnected():
+            return False
         return self._pupil_remote.is_recording
 
     def getLastSample(self):
@@ -303,85 +241,20 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
         """
         return self._latest_gaze_position
 
-    def getPosition(self):
-        """
-        See getLastGazePosition().
-        """
-        return self.getLastGazePosition()
+    def _poll(self):
+        # logging.warn(
+        # f"_POLL > isConnected={self.isConnected()} isRecordingEnabled={self.isRecordingEnabled()}")
+        if not (self.isConnected() and self.isRecordingEnabled()):
+            return
+        for topic, payload in self._pupil_remote.fetch():
+            pass
 
-    def getPos(self):
-        """
-        See getLastGazePosition().
-        """
-        return self.getLastGazePosition()
-
-    def _eyeTrackerToDisplayCoords(self, eyetracker_point):
-        """The _eyeTrackerToDisplayCoords method is required for implementation
-        of the Common Eye Tracker Interface in order to convert the native Eye
-        Tracker coordinate space to the ioHub.devices.Display coordinate space
-        being used in the PsychoPy experiment. Any screen based coordinates
-        that exist in the data provided to the ioHub by the device
-        implementation must use this method to convert the x,y eye tracker
-        point to the correct coordinate space.
-
-        Default implementation is to call the Display device method:
-
-            self._display_device._pixel2DisplayCoord(gaze_x,gaze_y,self._display_device.getIndex())
-
-        where gaze_x,gaze_y = eyetracker_point, which is assumed to be in screen pixel
-        coordinates, with a top-left origin. If the eye tracker provides the eye position
-        data in a coordinate space other than screen pixel position with top-left origin,
-        the eye tracker position should first be converted to this coordinate space before
-        passing the position data px,py to the _pixel2DisplayCoord method.
-
-        self._display_device.getIndex() provides the index of the display for multi display setups.
-        0 is the default index, and valid values are 0 - N-1, where N is the number
-        of connected, active, displays on the computer being used.
-
-        Args:
-            eyetracker_point (object): eye tracker implementation specific data type representing an x, y position on the calibrated 2D plane (typically a computer display screen).
-
-        Returns:
-            (x,y): The x,y eye position on the calibrated surface in the current ioHub.devices.Display coordinate type and space.
-
-        """
-        gaze_x = eyetracker_point[0]
-        gaze_y = eyetracker_point[1]
-
-        # If the eyetracker_point does not represent eye data as display
-        # pixel position using a top-left origin, convert the naive eye tracker
-        # gaze coordinate space to a display pixel position using a top-left origin
-        # here before passing gaze_x,gaze_y to the _pixel2DisplayCoord method.
-        # ....
-
-        return self._display_device._pixel2DisplayCoord(
-            gaze_x, gaze_y, self._display_device.getIndex())
-
-    def _displayToEyeTrackerCoords(self, display_x, display_y):
-        """The _displayToEyeTrackerCoords method must be used by an eye
-        trackers implementation of the Common Eye Tracker Interface to convert
-        any gaze positions provided by the ioHub to the appropriate x,y gaze
-        position coordinate space for the eye tracking device in use.
-
-        This method is simply the inverse operation performed by the _eyeTrackerToDisplayCoords
-        method.
-
-        Default implementation is to just return the result of self._display_device.display2PixelCoord(...).
-
-        Args:
-            display_x (float): The horizontal eye position on the calibrated 2D surface in ioHub.devices.Display coordinate space.
-            display_y (float): The vertical eye position on the calibrated 2D surface in ioHub.devices.Display coordinate space.
-
-        Returns:
-            (object): eye tracker implementation specific data type representing an x, y position on the calibrated 2D plane (typically a computer display screen).
-
-        """
-
-        pixel_x, pixel_y = self._display_device.display2PIxelCoord(
-            display_x, display_y, self._display_device.getIndex())
-        return pixel_x, pixel_y
+    def _add_native_pupil_sample(self, native_pupil_sample):
+        pass
 
     def __del__(self):
         """Do any final cleanup of the eye tracker before the object is
         destroyed."""
+        self.setRecordingState(False)
+        self.setConnectionState(False)
         self.__class__._INSTANCE = None

@@ -6,6 +6,7 @@ import abc
 import contextlib
 import logging
 import msgpack
+import time
 import weakref
 import zmq
 
@@ -13,10 +14,9 @@ import zmq
 logger = logging.getLogger(__name__)
 
 
-class PupilRemoteDelegate(abc.ABC):
-    @abc.abstractmethod
+class PupilRemoteDelegate:
     def handle_event(self, topic: str, payload):
-        pass
+        raise NotImplementedError()
 
 
 class PupilRemote:
@@ -31,8 +31,7 @@ class PupilRemote:
     'v'  # get the Pupil Core software version string
     """
 
-    def __init__(self, delegate: PupilRemoteDelegate, ip_address: str = "127.0.0.1", port: int = 50020):
-        self._delegate = weakref.ref(delegate)
+    def __init__(self, ip_address: str = "127.0.0.1", port: int = 50020):
 
         # Creates a zmq-REQ socket and connect it to Pupil Capture
         # See https://docs.pupil-labs.com/developer/core/network-api/ for details.
@@ -99,15 +98,20 @@ class PupilRemote:
         self._zmq_req_socket.send_string("v")
         return self._zmq_req_socket.recv_string()
 
-    def fetch_event(self):
-        topic = self._zmq_sub_socket.recv_string()
-        payload = self._zmq_sub_socket.recv()
-        payload = msgpack.loads(payload, raw=False)
-        with self.alive_delegate() as delegate:
-            delegate.handle_event(topic, payload)
+    def fetch(self):
+        while True:
+            if not self.has_new_data:
+                break
 
-    @contextlib.contextmanager
-    def alive_delegate(self):
-        delegate = self._delegate()
-        if delegate is not None:
-            yield delegate
+            topic = self._zmq_sub_socket.recv_string()
+            payload = self._zmq_sub_socket.recv()
+            payload = msgpack.loads(payload, raw=False)
+            yield topic, payload
+
+    def cleanup(self):
+        self._zmq_req_socket.close()
+        self._zmq_sub_socket.close()
+
+    @property
+    def has_new_data(self):
+        return self._zmq_sub_socket.get(zmq.EVENTS) & zmq.POLLIN

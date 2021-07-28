@@ -1,0 +1,2 @@
+class PupilSample:
+    pass

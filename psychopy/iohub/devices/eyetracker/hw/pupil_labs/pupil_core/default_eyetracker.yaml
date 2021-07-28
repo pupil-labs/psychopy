@@ -25,9 +25,6 @@ eyetracker.hw.pupil_labs.pupil_core.EyeTracker:
     
     firmware_version: N/A
 
-    manufacture_date: DD-MM-YYYY
-
-
     #####
 
     # Should eye tracker events be saved to the ioHub DataStore file when the device
@@ -45,6 +42,9 @@ eyetracker.hw.pupil_labs.pupil_core.EyeTracker:
 
     # Do not change this value.
     auto_report_events: False
+
+    device_timer:
+        interval: 0.005
 
     #####
 
