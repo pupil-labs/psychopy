@@ -64,13 +64,18 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
 
     def __init__(self, *args, **kwargs):
         EyeTrackerDevice.__init__(self, *args, **kwargs)
-        self._pupil_remote_ip_address = self._runtime_settings["pupil_remote"][
-            "ip_address"
-        ]
-        self._pupil_remote_port = self._runtime_settings["pupil_remote"]["port"]
-        self._pupil_remote_timeout_ms = self._runtime_settings["pupil_remote"][
-            "timeout_ms"
-        ]
+
+        self._actively_recording = False
+
+        pupil_remote_settings = self._runtime_settings["pupil_remote"]
+        self._pupil_remote_ip_address = pupil_remote_settings["ip_address"]
+        self._pupil_remote_port = pupil_remote_settings["port"]
+        self._pupil_remote_timeout_ms = pupil_remote_settings["timeout_ms"]
+
+        capture_recording_settings = self._runtime_settings["pupil_capture_recording"]
+        self._capture_recording_enabled = capture_recording_settings["enabled"]
+        self._capture_recording_location = capture_recording_settings["location"]
+
         self._pupil_remote = None
         self.setConnectionState(True)
 
@@ -168,7 +173,7 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
         """
         return self._pupil_remote.start_calibration()
 
-    def setRecordingState(self, recording):
+    def setRecordingState(self, should_be_recording):
         """The setRecordingState method is used to start or stop the recording
         and transmission of eye data from the eye tracking device to the ioHub
         Process.
@@ -182,10 +187,16 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
         """
         if not self.isConnected():
             return False
-        if recording:
-            self._pupil_remote.start_recording()
+        if self._capture_recording_enabled:
+            if should_be_recording:
+                self._pupil_remote.start_recording(
+                    rec_name=self._capture_recording_location
+                )
+            else:
+                self._pupil_remote.stop_recording()
+            self._actively_recording = self._pupil_remote.is_recording
         else:
-            self._pupil_remote.stop_recording()
+            self._actively_recording = should_be_recording
         return self.isRecordingEnabled()
 
     def isRecordingEnabled(self):
@@ -201,7 +212,7 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
         """
         if not self.isConnected():
             return False
-        return self._pupil_remote.is_recording
+        return self._actively_recording
 
     def getLastSample(self):
         """The getLastSample method returns the most recent eye sample received
