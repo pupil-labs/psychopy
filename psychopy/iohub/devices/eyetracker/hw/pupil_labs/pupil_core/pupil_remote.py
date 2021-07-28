@@ -5,11 +5,12 @@
 import abc
 import contextlib
 import logging
-import msgpack
 import time
 import weakref
-import zmq
 
+import msgpack
+import zmq
+from psychopy.iohub.devices import Computer
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +61,25 @@ class PupilRemote:
         # State values
         self._is_recording = False
 
+        self._psychopy_pupil_clock_offset = 0.0
+        self.update_psychopy_pupil_clock_offset()
+
     @property
     def is_recording(self) -> bool:
         return self._is_recording
+
+    @property
+    def psychopy_pupil_clock_offset(self) -> float:
+        return self._psychopy_pupil_clock_offset
+
+    def update_psychopy_pupil_clock_offset(self):
+        time_before = Computer.getTime()
+        time_pupil_at_pupil_clock_reading = self.get_pupil_time()
+        time_after = Computer.getTime()
+        time_psychopy_at_pupil_clock_reading = (time_before + time_after) / 2.0
+        self._psychopy_pupil_clock_offset = (
+            time_pupil_at_pupil_clock_reading - time_psychopy_at_pupil_clock_reading
+        )
 
     def start_recording(self, rec_name: str = None):
         if self._is_recording:

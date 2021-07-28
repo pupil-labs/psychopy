@@ -91,7 +91,13 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
             float: The eye tracker hardware's reported current time.
 
         """
-        return self._pupil_remote.get_pupil_time()
+        return self.psychopyTimeInTrackerTime(Computer.getTime())
+
+    def psychopyTimeInTrackerTime(self, psychopy_time):
+        return psychopy_time + self._pupil_remote.psychopy_pupil_clock_offset
+
+    def trackerTimeInPsychopyTime(self, tracker_time):
+        return tracker_time - self._pupil_remote.psychopy_pupil_clock_offset
 
     def trackerSec(self):
         """
