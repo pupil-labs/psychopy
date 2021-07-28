@@ -266,9 +266,17 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
         if not self.isConnected():
             return
         logged_time = Computer.getTime()
+        count = 0
         for topic, payload in self._pupil_remote.fetch():
             if topic.startswith("pupil"):
                 self._add_native_pupil_sample(payload, logged_time)
+                count += 1
+        print(
+            f"_POLL > isConnected={self.isConnected()} "
+            f"isReportingEvents={self.isReportingEvents()} "
+            f"isRecordingEnabled={self.isRecordingEnabled()} "
+            f"time={Computer.getTime():.3f} #events={count}"
+        )
 
     def _add_native_pupil_sample(self, native_pupil_sample, logged_time):
         eye = (
