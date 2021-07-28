@@ -3,18 +3,12 @@
 # Copyright (C) 2012-2020 iSolver Software Solutions (C) 2021 Open Science Tools Ltd.
 # Distributed under the terms of the GNU General Public License (GPL).
 
-import logging
-import math
 from psychopy.iohub.constants import EventConstants, EyeTrackerConstants
 from psychopy.iohub.devices import Computer, Device
-from psychopy.iohub.devices.eyetracker import EyeTrackerDevice
+from psychopy.iohub.devices.eyetracker import EyeTrackerDevice, MonocularEyeSampleEvent
 from psychopy.iohub.devices.eyetracker.eye_events import *
-from psychopy.iohub.errors import print2err, printExceptionDetailsToStdErr
 
 from .pupil_remote import PupilRemote, PupilRemoteDelegate
-
-
-logger = logging.getLogger(__name__)
 
 
 class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
@@ -269,15 +263,64 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
         return self._latest_gaze_position
 
     def _poll(self):
-        # logging.warn(
-        # f"_POLL > isConnected={self.isConnected()} isRecordingEnabled={self.isRecordingEnabled()}")
-        if not (self.isConnected() and self.isRecordingEnabled()):
+        if not self.isConnected():
             return
+        logged_time = Computer.getTime()
         for topic, payload in self._pupil_remote.fetch():
-            pass
+            if topic.startswith("pupil"):
+                self._add_native_pupil_sample(payload, logged_time)
 
-    def _add_native_pupil_sample(self, native_pupil_sample):
-        pass
+    def _add_native_pupil_sample(self, native_pupil_sample, logged_time):
+        eye = (
+            EyeTrackerConstants.LEFT_EYE
+            if native_pupil_sample["id"] == 1
+            else EyeTrackerConstants.RIGHT_EYE
+        )
+        diameter_2d = native_pupil_sample["diameter"]
+        diameter_3d = native_pupil_sample.get("diameter_3d", None)
+        native_event_time = native_pupil_sample["timestamp"]
+        psychopy_event_time = self.trackerTimeInPsychopyTime(native_event_time)
+
+        self._addNativeEventToBuffer(
+            # MonocularEyeSampleEvent(
+            [
+                0,  # experiment_id=  # experiment_id, iohub fills in automatically
+                0,  # session_id=  # session_id, iohub fills in automatically
+                0,  # device_id=  # device_id, keep at 0
+                Device._getNextEventID(),  # event_id=  # iohub event unique ID
+                EventConstants.MONOCULAR_EYE_SAMPLE,  # type=
+                native_event_time,  # device_time=
+                logged_time,  # logged_time=
+                psychopy_event_time,  # time=
+                -1.0,  # confidence_interval=
+                logged_time - psychopy_event_time,  # delay=
+                False,  # filter_id=
+                eye,  # eye=
+                None,  # gaze_x=
+                None,  # gaze_y=
+                None,  # gaze_z=
+                # TODO: fill eye cam values from native sample (sphere->center)
+                None,  # eye_cam_x=
+                None,  # eye_cam_y=
+                None,  # eye_cam_z=
+                # TODO: fill angle values from native sample (phi/theta)
+                None,  # angle_x=
+                None,  # angle_y=
+                native_pupil_sample["norm_pos"][0],  # raw_x=
+                native_pupil_sample["norm_pos"][1],  # raw_y=
+                diameter_2d,  # pupil_measure1=
+                EyeTrackerConstants.PUPIL_MAJOR_AXIS,  # pupil_measure1_type=
+                diameter_3d,  # pupil_measure2=
+                EyeTrackerConstants.PUPIL_DIAMETER_MM,  # pupil_measure2_type=
+                None,  # ppd_x=
+                None,  # ppd_y=
+                None,  # velocity_x=
+                None,  # velocity_y=
+                None,  # velocity_xy=
+                native_pupil_sample["method"],  # status=
+            ]
+            # )
+        )
 
     def __del__(self):
         """Do any final cleanup of the eye tracker before the object is
