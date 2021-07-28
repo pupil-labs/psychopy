@@ -64,8 +64,13 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
 
     def __init__(self, *args, **kwargs):
         EyeTrackerDevice.__init__(self, *args, **kwargs)
-        self._pupil_remote_ip_address = self._runtime_settings["pupil_remote"]["ip_address"]
+        self._pupil_remote_ip_address = self._runtime_settings["pupil_remote"][
+            "ip_address"
+        ]
         self._pupil_remote_port = self._runtime_settings["pupil_remote"]["port"]
+        self._pupil_remote_timeout_ms = self._runtime_settings["pupil_remote"][
+            "timeout_ms"
+        ]
         self._pupil_remote = None
         self.setConnectionState(True)
 
@@ -121,7 +126,10 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
         """
         if enable and self._pupil_remote is None:
             self._pupil_remote = PupilRemote(
-                ip_address=self._pupil_remote_ip_address, port=self._pupil_remote_port)
+                ip_address=self._pupil_remote_ip_address,
+                port=self._pupil_remote_port,
+                timeout_ms=self._pupil_remote_timeout_ms,
+            )
         elif not enable and self._pupil_remote is not None:
             self._pupil_remote.cleanup()
             self._pupil_remote = None

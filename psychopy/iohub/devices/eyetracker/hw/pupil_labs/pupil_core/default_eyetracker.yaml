@@ -20,9 +20,9 @@ eyetracker.hw.pupil_labs.pupil_core.EyeTracker:
     manufacturer_name: Pupil Labs
 
     software_version: N/A
-    
+
     hardware_version: N/A
-    
+
     firmware_version: N/A
 
     #####
@@ -49,7 +49,7 @@ eyetracker.hw.pupil_labs.pupil_core.EyeTracker:
     #####
 
     runtime_settings:
-
         pupil_remote:
             ip_address: 127.0.0.1
             port: 50020
+            timeout_ms: 1000

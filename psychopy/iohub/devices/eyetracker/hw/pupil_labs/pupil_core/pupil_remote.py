@@ -31,7 +31,9 @@ class PupilRemote:
     'v'  # get the Pupil Core software version string
     """
 
-    def __init__(self, ip_address: str = "127.0.0.1", port: int = 50020):
+    def __init__(
+        self, ip_address: str = "127.0.0.1", port: int = 50020, timeout_ms: int = 1000
+    ):
 
         # Creates a zmq-REQ socket and connect it to Pupil Capture
         # See https://docs.pupil-labs.com/developer/core/network-api/ for details.
@@ -41,6 +43,8 @@ class PupilRemote:
 
         # Create a zmq-SUB socket to get IPC Backbone notifications
         self._zmq_req_socket.send_string("SUB_PORT")
+        if self._zmq_req_socket.poll(timeout=timeout_ms, flags=zmq.POLLIN) == 0:
+            raise TimeoutError("Could not connect to Pupil Capture")
         sub_port = self._zmq_req_socket.recv_string()
         self._zmq_sub_socket = self._zmq_ctx.socket(zmq.SUB)
         self._zmq_sub_socket.connect(f"tcp://{ip_address}:{sub_port}")
