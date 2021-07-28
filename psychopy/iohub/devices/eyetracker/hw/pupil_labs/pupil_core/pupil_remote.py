@@ -32,7 +32,11 @@ class PupilRemote:
     """
 
     def __init__(
-        self, ip_address: str = "127.0.0.1", port: int = 50020, timeout_ms: int = 1000
+        self,
+        ip_address: str = "127.0.0.1",
+        port: int = 50020,
+        timeout_ms: int = 1000,
+        subscription_topics=("pupil.",),
     ):
 
         # Creates a zmq-REQ socket and connect it to Pupil Capture
@@ -50,7 +54,8 @@ class PupilRemote:
         self._zmq_sub_socket.connect(f"tcp://{ip_address}:{sub_port}")
 
         # Subscribe to IPC Backbone notification topics
-        self._zmq_sub_socket.setsockopt_string(zmq.SUBSCRIBE, "pupil.")
+        for topic in subscription_topics:
+            self._zmq_sub_socket.subscribe(topic)
 
         # State values
         self._is_recording = False

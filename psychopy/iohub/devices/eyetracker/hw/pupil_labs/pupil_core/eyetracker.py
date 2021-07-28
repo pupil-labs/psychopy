@@ -71,6 +71,7 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
         self._pupil_remote_ip_address = pupil_remote_settings["ip_address"]
         self._pupil_remote_port = pupil_remote_settings["port"]
         self._pupil_remote_timeout_ms = pupil_remote_settings["timeout_ms"]
+        self._pupil_remote_subscriptions = pupil_remote_settings["subscriptions"]
 
         capture_recording_settings = self._runtime_settings["pupil_capture_recording"]
         self._capture_recording_enabled = capture_recording_settings["enabled"]
@@ -134,6 +135,7 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
                 ip_address=self._pupil_remote_ip_address,
                 port=self._pupil_remote_port,
                 timeout_ms=self._pupil_remote_timeout_ms,
+                subscription_topics=self._pupil_remote_subscriptions,
             )
         elif not enable and self._pupil_remote is not None:
             self._pupil_remote.cleanup()

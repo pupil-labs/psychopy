@@ -53,6 +53,8 @@ eyetracker.hw.pupil_labs.pupil_core.EyeTracker:
             ip_address: 127.0.0.1
             port: 50020
             timeout_ms: 1000
+            subscriptions:
+                - pupil.
         pupil_capture_recording:
             enabled: True
             location: Null # Use Pupil Capture default recording location
