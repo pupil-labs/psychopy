@@ -304,27 +304,27 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
                 logged_time - psychopy_event_time,  # delay=
                 False,  # filter_id=
                 eye,  # eye=
-                None,  # gaze_x=
-                None,  # gaze_y=
-                None,  # gaze_z=
+                EyeTrackerConstants.UNDEFINED,  # gaze_x=
+                EyeTrackerConstants.UNDEFINED,  # gaze_y=
+                EyeTrackerConstants.UNDEFINED,  # gaze_z=
                 # TODO: fill eye cam values from native sample (sphere->center)
-                None,  # eye_cam_x=
-                None,  # eye_cam_y=
-                None,  # eye_cam_z=
+                EyeTrackerConstants.UNDEFINED,  # eye_cam_x=
+                EyeTrackerConstants.UNDEFINED,  # eye_cam_y=
+                EyeTrackerConstants.UNDEFINED,  # eye_cam_z=
                 # TODO: fill angle values from native sample (phi/theta)
-                None,  # angle_x=
-                None,  # angle_y=
+                EyeTrackerConstants.UNDEFINED,  # angle_x=
+                EyeTrackerConstants.UNDEFINED,  # angle_y=
                 native_pupil_sample["norm_pos"][0],  # raw_x=
                 native_pupil_sample["norm_pos"][1],  # raw_y=
                 diameter_2d,  # pupil_measure1=
                 EyeTrackerConstants.PUPIL_MAJOR_AXIS,  # pupil_measure1_type=
                 diameter_3d,  # pupil_measure2=
                 EyeTrackerConstants.PUPIL_DIAMETER_MM,  # pupil_measure2_type=
-                None,  # ppd_x=
-                None,  # ppd_y=
-                None,  # velocity_x=
-                None,  # velocity_y=
-                None,  # velocity_xy=
+                EyeTrackerConstants.UNDEFINED,  # ppd_x=
+                EyeTrackerConstants.UNDEFINED,  # ppd_y=
+                EyeTrackerConstants.UNDEFINED,  # velocity_x=
+                EyeTrackerConstants.UNDEFINED,  # velocity_y=
+                EyeTrackerConstants.UNDEFINED,  # velocity_xy=
                 native_pupil_sample["method"],  # status=
             ]
             # )
