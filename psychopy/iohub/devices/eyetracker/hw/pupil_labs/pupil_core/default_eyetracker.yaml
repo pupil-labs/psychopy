@@ -27,6 +27,8 @@ eyetracker.hw.pupil_labs.pupil_core.EyeTracker:
 
     #####
 
+    monitor_event_types: [MonocularEyeSampleEvent]
+
     # Should eye tracker events be saved to the ioHub DataStore file when the device
     # is recording data ?
     save_events: True
