@@ -56,6 +56,10 @@ class EyeTracker(EyeTrackerDevice, PupilRemoteDelegate):
     # without have to use the EXT extension class.
     _COMMAND_TO_FUNCTION = {}
 
+    EVENT_CLASS_NAMES = [
+        "MonocularEyeSampleEvent"
+    ]
+
     def __init__(self, *args, **kwargs):
         EyeTrackerDevice.__init__(self, *args, **kwargs)
 
