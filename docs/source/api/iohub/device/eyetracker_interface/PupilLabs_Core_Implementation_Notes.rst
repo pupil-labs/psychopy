@@ -133,7 +133,7 @@ plugin:
 
 
 *******************************
-Implementation And API Overview
+Implementation and API Overview
 *******************************
 
 EyeTracker Class
@@ -149,7 +149,7 @@ EyeTracker Class
 Supported Event Types
 =====================
 
-The Pupil Core-PsychoPy integration provides real-time access to monocular and binocular
+The Pupil Core–PsychoPy integration provides real-time access to monocular and binocular
 sample data. In pupillometry-only mode, all events will be emitted as
 :py:class:`MonocularEyeSampleEvents <psychopy.iohub.devices.eyetracker.MonocularEyeSampleEvent>`.
 In pupillometry+gaze mode, the software only emits :py:class:`BinocularEyeSampleEvents
